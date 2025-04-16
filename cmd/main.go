@@ -13,7 +13,7 @@ import (
 func main() {
 	conf := configs.LoadConfig()
 	db := mongo.NewMongo(conf)
-	dlqClient := dlq.NewDLQClient([]string{"kafka:9092"}, "notifications-dlq")
+	dlqClient := dlq.NewDLQClient([]string{"kafka:9092"}, "notifications-dlq") // env
 
 	// обработчики различного вида : smtp, sse, websocket
 	sseDispatcherService := sse.NewNotificationService(db, dlqClient)
