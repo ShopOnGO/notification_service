@@ -1,30 +1,30 @@
 package sse
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"notification/internal/dlq"
-	"notification/internal/model"
-	"notification/internal/storage"
-	"notification/pkg/mongo"
+	"notification/internal/notifications"
+	"notification/manager"
 )
 
 type NotificationService struct {
-	repository *mongo.Mongo   // Репозиторий для работы с базой данных
-	dlqClient  *dlq.DLQClient // Клиент для работы с Dead Letter Queue
+	repository    *notifications.NotificationRepository // Репозиторий для работы с базой данных
+	dlqClient     *dlq.DLQClient                        // Клиент для работы с Dead Letter Queue
+	clientManager *manager.ClientManager
 }
 
 // NewNotificationService — конструктор для NotificationService
-func NewNotificationService(repository *mongo.Mongo, dlqClient *dlq.DLQClient) *NotificationService {
+func NewNotificationService(repository *notifications.NotificationRepository, dlqClient *dlq.DLQClient, clientManager *manager.ClientManager) *NotificationService {
 	return &NotificationService{
-		repository: repository,
-		dlqClient:  dlqClient,
+		repository:    repository,
+		dlqClient:     dlqClient,
+		clientManager: clientManager,
 	}
 }
 
 // HandleMessageNotification — обработчик уведомления о сообщении
-func (s *NotificationService) HandleMessageNotification(n model.Notification) {
+func (s *NotificationService) HandleMessageNotification(n *notifications.Notification) {
 	if err := s.SaveNotificationToDB(n); err != nil {
 		log.Printf("⚠️ Could not save to DB: %v", err)
 	}
@@ -37,13 +37,13 @@ func (s *NotificationService) HandleMessageNotification(n model.Notification) {
 	}
 
 	// Пытаемся отправить уведомление пользователю
-	if err := storage.SendToUser(n.UserID, string(msg), s.dlqClient); err != nil {
+	if err := s.clientManager.SendToUser(n.UserID, string(msg), s.dlqClient); err != nil {
 		log.Printf("Failed to send notification for User %d: %v", n.UserID, err)
 	}
 }
 
 // HandleFriendRequestNotification — обработчик уведомления о запросе в друзья
-func (s *NotificationService) HandleFriendRequestNotification(n model.Notification) {
+func (s *NotificationService) HandleFriendRequestNotification(n *notifications.Notification) {
 	if err := s.SaveNotificationToDB(n); err != nil {
 		log.Printf("⚠️ Could not save to DB: %v", err)
 	}
@@ -56,14 +56,13 @@ func (s *NotificationService) HandleFriendRequestNotification(n model.Notificati
 	}
 
 	// Пытаемся отправить уведомление пользователю
-	if err := storage.SendToUser(n.UserID, string(msg), s.dlqClient); err != nil {
+	if err := s.clientManager.SendToUser(n.UserID, string(msg), s.dlqClient); err != nil {
 		log.Printf("Failed to send notification for User %d: %v", n.UserID, err)
 	}
 }
 
-// SaveNotificationToDB — сохраняет уведомление в базе данных
-func (s *NotificationService) SaveNotificationToDB(n model.Notification) error {
-	_, err := s.repository.Database.Collection("notifications").InsertOne(context.Background(), n)
+func (s *NotificationService) SaveNotificationToDB(n *notifications.Notification) error {
+	_, err := s.repository.Add(n)
 	if err != nil {
 		log.Printf("Error saving notification to DB: %v", err)
 		return err

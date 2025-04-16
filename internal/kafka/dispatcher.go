@@ -3,28 +3,28 @@ package kafka
 import (
 	"encoding/json"
 	"log"
-	"notification/internal/model"
+	"notification/internal/notifications"
 )
 
 type Dispatcher struct {
-	handlers map[string]func(model.Notification) // map категории к обработчику
+	handlers map[string]func(*notifications.Notification) // map категории к обработчику
 }
 
 // NewDispatcher создает новый экземпляр Dispatcher
 func NewDispatcher() *Dispatcher {
 	return &Dispatcher{
-		handlers: make(map[string]func(model.Notification)),
+		handlers: make(map[string]func(*notifications.Notification)),
 	}
 }
 
 // Register регистрирует обработчик для категории
-func (d *Dispatcher) Register(cat string, fn func(model.Notification)) {
+func (d *Dispatcher) Register(cat string, fn func(*notifications.Notification)) {
 	d.handlers[cat] = fn
 }
 
 // Dispatch обрабатывает входящее сообщение и вызывает нужный обработчик
 func (d *Dispatcher) Dispatch(msg []byte) {
-	var n model.Notification
+	var n notifications.Notification
 	if err := json.Unmarshal(msg, &n); err != nil {
 		log.Printf("🚨 Parse error: %v | Raw: %s", err, string(msg))
 		return
@@ -38,7 +38,7 @@ func (d *Dispatcher) Dispatch(msg []byte) {
 
 	// Ищем обработчик по категории
 	if handler, ok := d.handlers[n.Category]; ok {
-		handler(n) // Передаем только уведомление в обработчик
+		handler(&n) // Передаем только уведомление в обработчик
 	} else {
 		log.Printf("⚠️ No handler found for category: %s", n.Category)
 	}

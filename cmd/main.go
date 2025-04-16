@@ -4,7 +4,9 @@ import (
 	"notification/configs"
 	"notification/internal/dlq"
 	"notification/internal/kafka"
+	"notification/internal/notifications"
 	"notification/internal/sse"
+	"notification/manager"
 	"notification/pkg/mongo"
 
 	"github.com/gin-gonic/gin"
@@ -15,10 +17,16 @@ func main() {
 	db := mongo.NewMongo(conf)
 	dlqClient := dlq.NewDLQClient([]string{"kafka:9092"}, "notifications-dlq") // env
 
-	// обработчики различного вида : smtp, sse, websocket
-	sseDispatcherService := sse.NewNotificationService(db, dlqClient)
+	// клиентs ClientManager
+	clientManager := manager.NewClientManager()
 
-	// Создаем диспетчер
+	//repository
+	sseNotificationRepository := notifications.NewNotificationRepository(db.Database)
+
+	// обработчики различного вида : smtp, sse, websocket
+	sseDispatcherService := sse.NewNotificationService(sseNotificationRepository, dlqClient, clientManager)
+
+	// Создаем диспетчер категорий сообщений
 	dispatcher := kafka.NewDispatcher()
 
 	dispatcher.Register("MESSAGE", sseDispatcherService.HandleMessageNotification)
@@ -29,7 +37,8 @@ func main() {
 	r := gin.Default()
 
 	// SSE endpoint
-	r.GET("/sse/:userID", sse.SSEHandler)
+	r.GET("/sse/:userID", sse.SSEHandler(clientManager))
+	r.GET("/sse/status/:userID", sse.SSEStatusHandler(clientManager))
 
 	r.Run(":8079")
 }
