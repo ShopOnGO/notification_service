@@ -15,7 +15,7 @@ import (
 func main() {
 	conf := configs.LoadConfig()
 	db := mongo.NewMongo(conf)
-	dlqClient := dlq.NewDLQClient([]string{"kafka:9092"}, "notifications-dlq") // env
+	dlqClient := dlq.NewDLQClient([]string{conf.Dlq.Broker}, conf.Dlq.Topic)
 
 	// клиентs ClientManager
 	clientManager := manager.NewClientManager()

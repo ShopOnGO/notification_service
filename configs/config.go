@@ -6,6 +6,11 @@ import (
 
 type Config struct {
 	Mongo MongoConfig
+	Dlq   DlqConfig
+}
+type DlqConfig struct {
+	Broker string
+	Topic  string
 }
 
 type MongoConfig struct {
@@ -18,6 +23,10 @@ func LoadConfig() *Config {
 		Mongo: MongoConfig{
 			URI:      os.Getenv("MONGO_URI"),
 			Database: os.Getenv("MONGO_DB"),
+		},
+		Dlq: DlqConfig{
+			Broker: os.Getenv("KAFKA_BROKER"),
+			Topic:  os.Getenv("KAFKA_TOPICS"),
 		},
 	}
 }
