@@ -25,6 +25,8 @@ func (d *Dispatcher) Register(cat string, fn func(*notifications.Notification)) 
 // Dispatch обрабатывает входящее сообщение и вызывает нужный обработчик
 func (d *Dispatcher) Dispatch(msg []byte) {
 	var n notifications.Notification
+	log.Printf("[DLQ] 📦 Raw message: %s", string(msg))
+
 	if err := json.Unmarshal(msg, &n); err != nil {
 		log.Printf("🚨 Parse error: %v | Raw: %s", err, string(msg))
 		return

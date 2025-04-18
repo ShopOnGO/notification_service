@@ -48,13 +48,13 @@ func (m *ClientManager) IsConnected(userID uint32) bool {
 	return ok
 }
 
-func (m *ClientManager) SendToUser(userID uint32, msg string, dlqClient *dlq.DLQClient) error {
+func (m *ClientManager) SendToUser(userID uint32, msg string, dlqClient *dlq.DLQClient, wasInDLQ bool) error {
 	const maxRetries = 3
 
 	for i := 0; i < maxRetries; i++ {
 		ch, ok := m.GetClientChannel(userID)
 		if ok {
-			if err := m.sendWithRetry(ch, msg, 3, dlqClient); err != nil {
+			if err := m.sendWithRetry(ch, msg, 3, dlqClient, wasInDLQ); err != nil {
 				return err
 			}
 			return nil
@@ -67,7 +67,7 @@ func (m *ClientManager) SendToUser(userID uint32, msg string, dlqClient *dlq.DLQ
 
 	log.Printf("User %d never connected after %d retries", userID, maxRetries)
 
-	if dlqClient != nil {
+	if dlqClient != nil && !wasInDLQ {
 		if err := dlqClient.WriteToDLQ([]byte(msg), "user_not_connected"); err != nil {
 			log.Printf("DLQ write failed: %v", err)
 			return err
@@ -77,7 +77,7 @@ func (m *ClientManager) SendToUser(userID uint32, msg string, dlqClient *dlq.DLQ
 	return nil
 }
 
-func (m *ClientManager) sendWithRetry(ch chan string, msg string, maxRetries int, dlqClient *dlq.DLQClient) error {
+func (m *ClientManager) sendWithRetry(ch chan string, msg string, maxRetries int, dlqClient *dlq.DLQClient, wasInDLQ bool) error {
 	for i := 0; i < maxRetries; i++ {
 		select {
 		case ch <- msg:
@@ -91,7 +91,7 @@ func (m *ClientManager) sendWithRetry(ch chan string, msg string, maxRetries int
 
 	log.Printf("Failed to send after %d retries: %s", maxRetries, msg)
 
-	if dlqClient != nil {
+	if dlqClient != nil && !wasInDLQ {
 		if err := dlqClient.WriteToDLQ([]byte(msg), "max_retries"); err != nil {
 			log.Printf("DLQ write failed: %v", err)
 			return err

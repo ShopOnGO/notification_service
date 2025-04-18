@@ -7,6 +7,10 @@ services:
     command: ./wait-for-db.sh ./notification_service
     environment:
       - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC=${KAFKA_TOPIC}
+      - KAFKA_CONSUMER=${KAFKA_CONSUMER}
+
+
       - MONGO_URI=${MONGO_URI}
       - MONGO_DB=${MONGO_DB}
     networks:

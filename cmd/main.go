@@ -15,6 +15,7 @@ import (
 func main() {
 	conf := configs.LoadConfig()
 	db := mongo.NewMongo(conf)
+
 	dlqClient := dlq.NewDLQClient([]string{conf.Dlq.Broker}, conf.Dlq.Topic)
 
 	// клиентs ClientManager
@@ -32,7 +33,7 @@ func main() {
 	dispatcher.Register("MESSAGE", sseDispatcherService.HandleMessageNotification)
 	dispatcher.Register("FRIEND_REQUEST", sseDispatcherService.HandleFriendRequestNotification)
 
-	go kafka.ConsumeKafka(dispatcher.Dispatch)
+	go kafka.ConsumeKafka(conf, dispatcher.Dispatch)
 
 	r := gin.Default()
 
