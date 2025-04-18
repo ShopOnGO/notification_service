@@ -12,7 +12,6 @@ type NotificationService struct {
 	repository    *notifications.NotificationRepository // Репозиторий для работы с базой данных
 	dlqClient     *dlq.DLQClient                        // Клиент для работы с Dead Letter Queue
 	clientManager *manager.ClientManager
-	wasInDLQ      bool
 }
 
 // NewNotificationService — конструктор для NotificationService
