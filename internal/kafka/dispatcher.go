@@ -6,6 +6,12 @@ import (
 	"notification/internal/notifications"
 )
 
+var allowedCategoriesWithoutUserID = []string{
+	"AUTHRESET",
+	"RESET_CODE", //нету пока что
+	// другие категории, где userID не обязателен
+}
+
 type Dispatcher struct {
 	handlers map[string]func(*notifications.Notification) // map категории к обработчику
 }
@@ -32,10 +38,18 @@ func (d *Dispatcher) Dispatch(msg []byte) {
 		return
 	}
 
-	// Валидация обязательных полей
-	if n.UserID == 0 || n.Category == "" {
-		log.Printf("⚠️ Invalid notification: %+v", n)
+	if n.Category == "" {
+		log.Printf("⚠️ Invalid notification (missing category): %+v", n)
 		return
+	}
+
+	// Если userID == 0, проверяем, что категория находится в списке допустимых
+	if n.UserID == 0 {
+		// Проверяем, если категория не в списке разрешённых
+		if !contains(allowedCategoriesWithoutUserID, n.Category) {
+			log.Printf("🚨 Invalid notification: userID is required for category %s", n.Category)
+			return
+		}
 	}
 
 	// Ищем обработчик по категории
@@ -44,4 +58,13 @@ func (d *Dispatcher) Dispatch(msg []byte) {
 	} else {
 		log.Printf("⚠️ No handler found for category: %s", n.Category)
 	}
+}
+
+func contains(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }

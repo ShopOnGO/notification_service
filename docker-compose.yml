@@ -9,10 +9,19 @@ services:
       - KAFKA_BROKER=${KAFKA_BROKER}
       - KAFKA_TOPIC=${KAFKA_TOPIC}
       - KAFKA_CONSUMER=${KAFKA_CONSUMER}
+      - KAFKA_SMTP_CONSUMER=${KAFKA_SMTP_CONSUMER}
 
 
       - MONGO_URI=${MONGO_URI}
       - MONGO_DB=${MONGO_DB}
+
+
+      - SMTP_NAME=${SMTP_NAME}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+
     networks:
       - shopongo_default
     ports:

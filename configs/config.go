@@ -5,9 +5,11 @@ import (
 )
 
 type Config struct {
-	Mongo    MongoConfig
-	Dlq      DlqConfig
-	Consumer Consumer
+	Mongo     MongoConfig
+	Dlq       DlqConfig
+	Consumer  Consumer
+	SMTP      SMTPConfig
+	SMTPreset SMTPreset
 }
 type DlqConfig struct {
 	Broker string
@@ -20,6 +22,16 @@ type Consumer struct {
 type MongoConfig struct {
 	URI      string
 	Database string
+}
+type SMTPreset struct {
+	Consumer string
+}
+type SMTPConfig struct {
+	Name string
+	From string
+	Pass string
+	Host string
+	Port int
 }
 
 func LoadConfig() *Config {
@@ -36,5 +48,14 @@ func LoadConfig() *Config {
 			Broker: os.Getenv("KAFKA_BROKER"),
 			Topic:  os.Getenv("KAFKA_CONSUMER"),
 		},
+		SMTP: SMTPConfig{
+			Name: os.Getenv("SMTP_NAME"),
+			From: os.Getenv("SMTP_FROM"),
+			Pass: os.Getenv("SMTP_PASS"),
+			Host: os.Getenv("SMTP_HOST"),
+			Port: 587, // TLS
+		},
+		SMTPreset: SMTPreset{
+			Consumer: os.Getenv("KAFKA_SMTP_CONSUMER")},
 	}
 }

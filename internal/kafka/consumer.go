@@ -9,11 +9,11 @@ import (
 )
 
 // ConsumeKafka читает сообщения из Kafka и передает их в диспетчер
-func ConsumeKafka(conf *configs.Config, dispatch func([]byte)) {
+func ConsumeKafka(conf *configs.Config, topic string, groupID string, dispatch func([]byte)) {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{conf.Consumer.Broker},
-		Topic:    conf.Consumer.Topic,
-		GroupID:  "notification-service",
+		Topic:    topic,
+		GroupID:  groupID,
 		MinBytes: 1,
 		MaxBytes: 10e6,
 	})
@@ -21,9 +21,9 @@ func ConsumeKafka(conf *configs.Config, dispatch func([]byte)) {
 	for {
 		m, err := r.ReadMessage(context.Background())
 		if err != nil {
-			log.Println("Error due reading from Kafka:", err)
+			log.Println("❌ Error reading from Kafka topic", topic, ":", err)
 			continue
 		}
-		dispatch(m.Value) // Передаем сообщение в диспетчер
+		dispatch(m.Value)
 	}
 }
