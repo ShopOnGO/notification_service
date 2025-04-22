@@ -23,42 +23,36 @@ func NewNotificationService(repository *notifications.NotificationRepository, dl
 	}
 }
 
-// HandleMessageNotification — обработчик уведомления о сообщении
-func (s *NotificationService) HandleMessageNotification(n *notifications.Notification) {
+func (s *NotificationService) HandleMessageNotification(n *notifications.Notification, key string) {
 	wasInDLQ := n.WasInDLQ
 	if err := s.SaveNotificationToDB(n); err != nil {
 		log.Printf("⚠️ Could not save to DB: %v", err)
 	}
 
-	// Преобразуем уведомление в строку
 	msg, err := json.Marshal(n)
 	if err != nil {
 		log.Printf("Error marshaling notification: %v", err)
 		return
 	}
 
-	// Пытаемся отправить уведомление пользователю
-	if err := s.clientManager.SendToUser(n.UserID, string(msg), s.dlqClient, wasInDLQ); err != nil {
+	if err := s.clientManager.SendToUser(n.UserID, string(msg), key, s.dlqClient, wasInDLQ); err != nil {
 		log.Printf("Failed to send notification for User %d: %v", n.UserID, err)
 	}
 }
 
-// HandleFriendRequestNotification — обработчик уведомления о запросе в друзья
-func (s *NotificationService) HandleFriendRequestNotification(n *notifications.Notification) {
+func (s *NotificationService) HandleFriendRequestNotification(n *notifications.Notification, key string) {
 	wasInDLQ := n.WasInDLQ
 	if err := s.SaveNotificationToDB(n); err != nil {
 		log.Printf("⚠️ Could not save to DB: %v", err)
 	}
 
-	// Преобразуем уведомление в строку
 	msg, err := json.Marshal(n)
 	if err != nil {
 		log.Printf("Error marshaling notification: %v", err)
 		return
 	}
 
-	// Пытаемся отправить уведомление пользователю
-	if err := s.clientManager.SendToUser(n.UserID, string(msg), s.dlqClient, wasInDLQ); err != nil {
+	if err := s.clientManager.SendToUser(n.UserID, string(msg), key, s.dlqClient, wasInDLQ); err != nil {
 		log.Printf("Failed to send notification for User %d: %v", n.UserID, err)
 	}
 }

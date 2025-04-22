@@ -1,4 +1,4 @@
-package passwordreset
+package smtpreset
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ func NewSMTPService(sender email.Sender) *SMTPService {
 	}
 }
 
-func (s *SMTPService) HandleResetNotification(n *notifications.Notification) {
+func (s *SMTPService) HandleResetNotification(n *notifications.Notification, key string) {
 	if n.Category != "AUTHRESET" {
 		logger.Error("❌ Неверная категория уведомления: " + n.Category)
 		return
