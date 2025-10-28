@@ -8,16 +8,14 @@ services:
     env_file:
       - .env
     environment:
-      - KAFKA_BROKERS=${KAFKA_BROKERS}
-      - KAFKA_NOTIFY_TOPIC=${KAFKA_NOTIFY_TOPIC}
-      - KAFKA_NOTIFY_CONSUMER=${KAFKA_NOTIFY_CONSUMER}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC=${KAFKA_TOPIC}
+      - KAFKA_CONSUMER=${KAFKA_CONSUMER}
       - KAFKA_SMTP_CONSUMER=${KAFKA_SMTP_CONSUMER}
       - KAFKA_NOTIFICATION_TOPICS=${KAFKA_NOTIFICATION_TOPICS}
 
-
       - MONGO_URI=${MONGO_URI}
       - MONGO_DB=${MONGO_DB}
-
 
       - SMTP_NAME=${SMTP_NAME}
       - SMTP_FROM=${SMTP_FROM}
@@ -47,9 +45,22 @@ services:
     ports:
       - "27017:27017"
 
+  test:
+    image: golang:1.23
+    container_name: shop_on_go_test
+    working_dir: /app
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    command: go test ./...
+    networks:
+      - shopongo_default
+
+  
+
 networks:
   shopongo_default:
-    external: true
 
 volumes:
   mongo_data:
