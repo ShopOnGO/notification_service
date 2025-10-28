@@ -50,11 +50,11 @@ func LoadConfig() *Config {
 			Database: os.Getenv("MONGO_DB"),
 		},
 		Dlq: DlqConfig{
-			Broker: os.Getenv("KAFKA_BROKER"),
-			Topic:  os.Getenv("KAFKA_TOPIC"),
+			Broker: os.Getenv("KAFKA_BROKERS"),
+			Topic:  os.Getenv("KAFKA_NOTIFY_TOPIC"),
 		},
 		Consumer: Consumer{
-			Broker: os.Getenv("KAFKA_BROKER"),
+			Broker: os.Getenv("KAFKA_BROKERS"),
 			Topics: topics,
 		},
 		SMTP: SMTPConfig{
