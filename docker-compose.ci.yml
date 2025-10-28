@@ -5,6 +5,8 @@ services:
     container_name: notification_container
     build: ./
     command: ./wait-for-db.sh ./notification_service
+    env_file:
+      - .env
     environment:
       - KAFKA_BROKER=${KAFKA_BROKER}
       - KAFKA_TOPIC=${KAFKA_TOPIC}
