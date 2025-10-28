@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  notification_container:
+    container_name: notification_container
+    build: ./
+    command: ./wait-for-db.sh ./notification_service
+    environment:
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC=${KAFKA_TOPIC}
+      - KAFKA_CONSUMER=${KAFKA_CONSUMER}
+      - KAFKA_SMTP_CONSUMER=${KAFKA_SMTP_CONSUMER}
+      - KAFKA_NOTIFICATION_TOPICS=${KAFKA_NOTIFICATION_TOPICS}
+
+      - MONGO_URI=${MONGO_URI}
+      - MONGO_DB=${MONGO_DB}
+
+      - SMTP_NAME=${SMTP_NAME}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+
+    networks:
+      - shopongo_default
+    ports:
+      - "8079:8079"
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - shopongo_default
+    ports:
+      - "27017:27017"
+
+  test:
+    image: golang:1.23
+    container_name: shop_on_go_test
+    working_dir: /app
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    command: go test ./...
+    networks:
+      - shopongo_default
+
+  
+
+networks:
+  shopongo_default:
+
+volumes:
+  mongo_data:
