@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"notification/internal/dlq"
 	"notification/internal/notifications"
 	"notification/internal/smtpreset"
 	"notification/internal/sse"
@@ -25,13 +26,16 @@ type ConsumerService struct {
 func NewConsumerService(
 	sseHandler *sse.NotificationService,
 	smtpHandler *smtpreset.SMTPService,
+	dlqClient *dlq.DLQClient,
 ) *ConsumerService {
 	d := kafkaService.NewDispatcher()
 
 	// Регистрируем каждый обработчик под своим префиксом
-	d.Register("notification-AddNote", wrapHandler(sseHandler.HandleMessageNotification))
+	d.Register("notification-", wrapHandler(sseHandler.HandleMessageNotification, dlqClient))
+	d.Register("reset-", wrapHandler(smtpHandler.HandleResetNotification, dlqClient))
+
+	//d.Register("notification-AddNote", wrapHandler(sseHandler.HandleMessageNotification))
 	//d.Register("notification-FriendReq", wrapHandler(sseHandler.HandleFriendRequestNotification))
-	d.Register("reset-", wrapHandler(smtpHandler.HandleResetNotification))
 
 	return &ConsumerService{dispatcher: d}
 }
@@ -41,25 +45,31 @@ func (cs *ConsumerService) Handler() func(msg kafka.Message) error {
 }
 
 // adapter pattern
-func wrapHandler(fn func(*notifications.Notification, string)) func(msg kafka.Message) error {
+func wrapHandler(fn func(*notifications.Notification, string), dlqClient *dlq.DLQClient) func(msg kafka.Message) error {
 	return func(msg kafka.Message) error {
 		key := string(msg.Key)
 		log.Printf("[DLQ] 📦 Kafka Key: %s | Msg: %s", key, string(msg.Value))
 
 		var n notifications.Notification
 		if err := json.Unmarshal(msg.Value, &n); err != nil {
-			log.Printf("🚨 Parse error: %v | Raw: %s", err, string(msg.Value))
-			return err
+			log.Printf("🚨 [Poison Pill] Parse error: %v | Raw: %s. Sending to DLQ.", err, string(msg.Value))
+			// 5. ОТПРАВЛЯЕМ В DLQ
+			dlqClient.WriteToDLQ(key, msg.Value, fmt.Sprintf("json_unmarshal_error: %v", err))
+			// 6. ВОЗВРАЩАЕМ NIL, ЧТОБЫ ЗАКОММИТИТЬ СООБЩЕНИЕ
+			return nil
 		}
 
 		if n.Category == "" {
-			log.Printf("⚠️ Invalid notification (missing category): %+v", n)
-			return fmt.Errorf("missing category")
+			log.Printf("⚠️ [Poison Pill] Invalid notification (missing category): %+v. Sending to DLQ.", n)
+			dlqClient.WriteToDLQ(key, msg.Value, "missing_category")
+			return nil // <--- 6. ВОЗВРАЩАЕМ NIL
 		}
 
+		// Эта проверка теперь будет работать и для 'PRODUCT_CREATED'
 		if n.UserID == 0 && !contains(allowedCategoriesWithoutUserID, n.Category) {
-			log.Printf("🚨 Invalid notification: userID is required for category %s", n.Category)
-			return fmt.Errorf("missing userID for category %s", n.Category)
+			log.Printf("🚨 [Poison Pill] Invalid notification: userID is required for category %s. Sending to DLQ.", n.Category)
+			dlqClient.WriteToDLQ(key, msg.Value, fmt.Sprintf("missing_userid_for_category_%s", n.Category))
+			return nil // <--- 6. ВОЗВРАЩАЕМ NIL
 		}
 
 		fn(&n, key)

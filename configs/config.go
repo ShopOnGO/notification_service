@@ -1,7 +1,9 @@
 package configs
 
 import (
+	"log"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -17,7 +19,7 @@ type DlqConfig struct {
 }
 type Consumer struct {
 	Broker string
-	Topic  string
+	Topics []string
 }
 type MongoConfig struct {
 	URI      string
@@ -35,6 +37,13 @@ type SMTPConfig struct {
 }
 
 func LoadConfig() *Config {
+
+	topicsStr := os.Getenv("KAFKA_NOTIFICATION_TOPICS")
+	if topicsStr == "" {
+		log.Fatal("KAFKA_NOTIFICATION_TOPICS is not set in env")
+	}
+	topics := strings.Split(topicsStr, ",")
+
 	return &Config{
 		Mongo: MongoConfig{
 			URI:      os.Getenv("MONGO_URI"),
@@ -46,7 +55,7 @@ func LoadConfig() *Config {
 		},
 		Consumer: Consumer{
 			Broker: os.Getenv("KAFKA_BROKER"),
-			Topic:  os.Getenv("KAFKA_CONSUMER"),
+			Topics: topics,
 		},
 		SMTP: SMTPConfig{
 			Name: os.Getenv("SMTP_NAME"),

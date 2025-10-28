@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"notification/configs"
 	"notification/internal/dispatcher"
 	"notification/internal/dlq"
@@ -39,13 +41,31 @@ func App() *gin.Engine {
 	sseDispatcherService := sse.NewNotificationService(sseNotificationRepository, dlqClient, clientManager)
 	smtpDispatcherService := smtpreset.NewSMTPService(smtpSender)
 
-	// Kafka consumers
-	notificationConsumer := shopKafka.NewConsumer(
-		[]string{conf.Consumer.Broker},
-		conf.Consumer.Topic,
-		"notifications-group",
-		"notification-service",
-	)
+	// consumer handler
+	consumerService := dispatcher.NewConsumerService(sseDispatcherService, smtpDispatcherService, dlqClient)
+
+	for _, topic := range conf.Consumer.Topics {
+		if topic == "" {
+			continue
+		}
+
+		log.Printf("[Kafka] Starting consumer for topic: %s in group: %s", topic, "notifications-group")
+
+		clientID := fmt.Sprintf("notification-service-%s", topic)
+
+		consumer := shopKafka.NewConsumer(
+			[]string{conf.Consumer.Broker},
+			topic,
+			"notifications-group",
+			clientID,
+		)
+
+		go func(c *shopKafka.KafkaService, t string) {
+			log.Printf("[Kafka] Consumer for topic %s started", t)
+			// Убедитесь, что ваш .Consume() блокирующий и обрабатывает ошибки внутри
+			c.Consume(ctx, consumerService.Handler())
+		}(consumer, topic)
+	}
 
 	smtpConsumer := shopKafka.NewConsumer(
 		[]string{conf.Consumer.Broker},
@@ -54,11 +74,7 @@ func App() *gin.Engine {
 		"smtp-reset-service",
 	)
 
-	// consumer handler
-	consumerService := dispatcher.NewConsumerService(sseDispatcherService, smtpDispatcherService)
-
-	// стартуем консюмеры
-	go notificationConsumer.Consume(ctx, consumerService.Handler())
+	// стартуем консюмер
 	go smtpConsumer.Consume(ctx, consumerService.Handler())
 
 	// gin router
