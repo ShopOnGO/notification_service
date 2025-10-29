@@ -4,14 +4,19 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/ShopOnGO/ShopOnGO/configs"
+	"github.com/ShopOnGO/ShopOnGO/pkg/logger"
 )
 
 type Config struct {
-	Mongo     MongoConfig
-	Dlq       DlqConfig
-	Consumer  Consumer
-	SMTP      SMTPConfig
-	SMTPreset SMTPreset
+	Mongo        MongoConfig
+	Dlq          DlqConfig
+	Consumer     Consumer
+	SMTP         SMTPConfig
+	SMTPreset    SMTPreset
+	LogLevel     logger.LogLevel
+	FileLogLevel logger.LogLevel
 }
 type DlqConfig struct {
 	Broker string
@@ -43,6 +48,17 @@ func LoadConfig() *Config {
 		log.Fatal("KAFKA_NOTIFICATION_TOPICS is not set in env")
 	}
 	topics := strings.Split(topicsStr, ",")
+	// logger
+	logLevelStr := os.Getenv("NOTIFICATION_SERVICE_LOG_LEVEL")
+	if logLevelStr == "" {
+		logLevelStr = "INFO"
+	}
+	LogLevel := configs.ParseLogLevel(logLevelStr)
+	fileLogLevelStr := os.Getenv("NOTIFICATION_SERVICE_FILE_LOG_LEVEL")
+	if fileLogLevelStr == "" {
+		fileLogLevelStr = "INFO"
+	}
+	FileLogLevel := configs.ParseLogLevel(fileLogLevelStr)
 
 	return &Config{
 		Mongo: MongoConfig{
@@ -66,5 +82,7 @@ func LoadConfig() *Config {
 		},
 		SMTPreset: SMTPreset{
 			Consumer: os.Getenv("KAFKA_SMTP_CONSUMER")},
+		LogLevel:     LogLevel,
+		FileLogLevel: FileLogLevel,
 	}
 }

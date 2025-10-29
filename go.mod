@@ -7,10 +7,14 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 )
 
-require gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df // indirect
+require (
+	github.com/joho/godotenv v1.5.1 // indirect
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df // indirect
+	gorm.io/gorm v1.25.12 // indirect
+)
 
 require (
-	github.com/ShopOnGO/ShopOnGO v0.0.0-20251028192327-9ce4a3e38c52
+	github.com/ShopOnGO/ShopOnGO v0.0.0-20251029122247-7565929e2f88
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect

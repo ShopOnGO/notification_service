@@ -15,11 +15,18 @@ import (
 	"notification/pkg/mongo"
 
 	shopKafka "github.com/ShopOnGO/ShopOnGO/pkg/kafkaService"
+	"github.com/ShopOnGO/ShopOnGO/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
 func App() *gin.Engine {
 	conf := configs.LoadConfig()
+
+	consoleLvl := conf.LogLevel
+	fileLvl := conf.FileLogLevel
+	logger.InitLogger(consoleLvl, fileLvl)
+	logger.EnableFileLogging("TailorNado_notification-service")
+
 	ctx := context.Background()
 
 	db := mongo.NewMongo(conf)
